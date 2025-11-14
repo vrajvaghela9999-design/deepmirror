@@ -91,7 +91,7 @@ export default function HomePage() {
                 letterSpacing: "0.05em",
               }}
             >
-              MindCoach
+              DeepMirror
             </div>
             <div style={{ fontSize: "12px", opacity: 0.7 }}>
               Demo — Educational support only
@@ -107,7 +107,7 @@ export default function HomePage() {
               border: "1px solid rgba(148, 163, 184, 0.5)",
             }}
           >
-            Built by Vraj · Powered by OpenAI
+            Built by Vraj Vaghela · Powered by OpenAI
           </div>
         </header>
 
@@ -131,8 +131,7 @@ export default function HomePage() {
             A calm space to sort through your thoughts.
           </h1>
           <p style={{ fontSize: "14px", lineHeight: 1.6, opacity: 0.9 }}>
-            MindCoach helps you reflect on your feelings, patterns, and
-            decisions — like talking to a thoughtful psychologist, but in
+            DeepMirror helps you see your thoughts,feelings, and patterns more clearly — like talking to a thoughtful psychologist, but in
             a safe, educational way. It can ask questions, spot patterns,
             and suggest small next steps. It{" "}
             <strong>does not replace a real therapist or doctor.</strong>
@@ -187,16 +186,16 @@ export default function HomePage() {
               fontWeight: 600,
             }}
           >
-            How to use MindCoach
+            How to use DeepMirror
           </h2>
           <ol style={{ fontSize: "13px", lineHeight: 1.6, paddingLeft: "18px" }}>
-            <li>Type your age and what you&apos;re going through right now.</li>
+            <li>Type your age and what you're going through right now.</li>
             <li>
               Start with one situation (for example: sleep, relationships,
               confidence, overthinking).
             </li>
             <li>
-              Answer the follow-up questions honestly — this helps MindCoach see
+              Answer the follow-up questions honestly — this helps DeepMirror see
               the full picture.
             </li>
             <li>
@@ -336,7 +335,7 @@ export default function HomePage() {
               lineHeight: 1.4,
             }}
           >
-            MindCoach is for reflection and education only. If you&apos;re in
+            DeepMirror is for reflection and education only. If you&apos;re in
             immediate danger or thinking about harming yourself, please contact
             local emergency services or a trusted person right away.
           </p>
