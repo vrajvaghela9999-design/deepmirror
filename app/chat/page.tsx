@@ -39,7 +39,7 @@ export default function ChatPage() {
       if (!error && data?.user) {
         setUser({
           id: data.user.id,
-          email: data.user.email,
+          email: data.user.email ?? null,
         });
       } else {
         setUser(null);
