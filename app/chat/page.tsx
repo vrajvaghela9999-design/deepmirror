@@ -56,7 +56,7 @@ export default function ChatPage() {
       if (session?.user) {
         setUser({
           id: session.user.id,
-          email: session.user.email,
+          email: session.user.email ?? null,
         });
       } else {
         setUser(null);
