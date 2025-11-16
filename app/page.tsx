@@ -18,176 +18,189 @@ export default function HomePage() {
       }}
     >
       <div style={{ width: "100%", maxWidth: "860px" }}>
-        {/* Top label */}
-        <div
+        {/* Top bar */}
+        <header
           style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: "24px",
             fontSize: "13px",
-            opacity: 0.8,
-            marginBottom: "8px",
           }}
         >
-          DeepMirror <span style={{ opacity: 0.6 }}>— Educational support only</span>
-        </div>
+          <div style={{ opacity: 0.85 }}>
+            DeepMirror{" "}
+            <span style={{ opacity: 0.6 }}>
+              — Educational support only
+            </span>
+          </div>
+
+          <Link
+            href="/login"
+            style={{
+              color: "#a5b4fc",
+              textDecoration: "none",
+              fontSize: "13px",
+            }}
+          >
+            Sign in
+          </Link>
+        </header>
 
         {/* Hero card */}
         <section
           style={{
             borderRadius: "18px",
             padding: "24px 20px",
-            background: "rgba(15,23,42,0.9)",
-            border: "1px solid rgba(148,163,184,0.35)",
-            boxShadow: "0 22px 45px rgba(15,23,42,0.9)",
-            marginBottom: "20px",
+            background:
+              "linear-gradient(135deg, rgba(30,64,175,0.5), rgba(15,23,42,0.9))",
+            border: "1px solid rgba(148,163,184,0.3)",
+            boxShadow: "0 24px 60px rgba(15,23,42,0.9)",
           }}
         >
           <h1
             style={{
               fontSize: "28px",
-              marginBottom: "10px",
-              fontWeight: 700,
+              lineHeight: 1.2,
+              marginBottom: "12px",
             }}
           >
             A calm space to sort through your thoughts.
           </h1>
-
           <p
             style={{
               fontSize: "14px",
-              lineHeight: 1.6,
-              opacity: 0.9,
+              color: "rgba(226,232,240,0.85)",
+              marginBottom: "16px",
+              maxWidth: "540px",
             }}
           >
-            DeepMirror helps you see your thoughts, feelings, and patterns more clearly —
-            like talking to a thoughtful psychologist, but in a safe, educational way.
-            It can ask questions, spot patterns, and suggest small next steps.{" "}
-            <strong>It does not replace a real therapist or doctor.</strong>
+            DeepMirror helps you see your thoughts, feelings, and patterns more
+            clearly — like talking to a thoughtful psychologist, but in a safe,
+            educational way. It can ask questions, spot patterns, and suggest
+            small next steps. It does not replace a real therapist or doctor.
           </p>
 
-          {/* Safety badges */}
           <div
             style={{
-              marginTop: "14px",
               display: "flex",
               flexWrap: "wrap",
-              gap: "10px",
+              gap: "8px",
               fontSize: "12px",
+              marginBottom: "18px",
             }}
           >
-            <div
+            <span
               style={{
-                padding: "6px 11px",
+                padding: "6px 10px",
                 borderRadius: "999px",
-                background: "rgba(34,197,94,0.12)",
-                border: "1px solid rgba(34,197,94,0.4)",
+                background: "rgba(22,163,74,0.12)",
+                border: "1px solid rgba(22,163,74,0.6)",
+                color: "#bbf7d0",
               }}
             >
               ✅ Ask about anxiety, stress, habits, relationships
-            </div>
-            <div
+            </span>
+            <span
               style={{
-                padding: "6px 11px",
+                padding: "6px 10px",
                 borderRadius: "999px",
-                background: "rgba(248,113,113,0.12)",
-                border: "1px solid rgba(248,113,113,0.4)",
+                background: "rgba(127,29,29,0.2)",
+                border: "1px solid rgba(239,68,68,0.7)",
+                color: "#fecaca",
               }}
             >
               ⚠️ Not for crises, emergencies, or medical advice
-            </div>
+            </span>
           </div>
 
           {/* Buttons */}
           <div
             style={{
-              marginTop: "20px",
               display: "flex",
               flexWrap: "wrap",
               gap: "10px",
+              alignItems: "center",
+              marginBottom: "10px",
             }}
           >
-            {/* This goes to the chat page */}
-            <Link href="/chat">
-              <button
-                style={{
-                  padding: "10px 18px",
-                  borderRadius: "999px",
-                  border: "none",
-                  fontSize: "14px",
-                  fontWeight: 600,
-                  cursor: "pointer",
-                  background:
-                    "linear-gradient(135deg, rgba(59,130,246,1), rgba(147,51,234,1))",
-                  color: "white",
-                  boxShadow: "0 12px 30px rgba(59,130,246,0.45)",
-                }}
-              >
-                Start DeepMirror
-              </button>
+            <Link
+              href="/chat"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: "10px 20px",
+                borderRadius: "999px",
+                background:
+                  "linear-gradient(135deg, #6366f1, #22c55e)",
+                color: "#020617",
+                fontSize: "14px",
+                fontWeight: 600,
+                textDecoration: "none",
+              }}
+            >
+              Start DeepMirror
             </Link>
 
-            {/* Scroll to how-it-works section */}
-            <button
-              onClick={() => {
-                const el = document.getElementById("how-it-works");
-                if (el) el.scrollIntoView({ behavior: "smooth" });
-              }}
+            <a
+              href="#how-it-works"
               style={{
-                padding: "10px 18px",
-                borderRadius: "999px",
-                border: "1px solid rgba(148,163,184,0.6)",
-                fontSize: "14px",
-                fontWeight: 500,
-                cursor: "pointer",
-                background: "transparent",
-                color: "white",
+                fontSize: "13px",
+                color: "#e5e7eb",
+                textDecoration: "none",
+                opacity: 0.85,
               }}
             >
               Learn how it works
-            </button>
+            </a>
           </div>
         </section>
 
-        {/* How it works section */}
+        {/* How to use */}
         <section
           id="how-it-works"
           style={{
-            marginTop: "8px",
-            marginBottom: "24px",
-            padding: "18px 18px",
+            marginTop: "20px",
+            padding: "18px 16px",
             borderRadius: "16px",
-            background: "#020617",
-            border: "1px solid rgba(30,64,175,0.7)",
+            border: "1px solid rgba(148,163,184,0.35)",
+            background: "rgba(15,23,42,0.9)",
+            fontSize: "13px",
+            color: "rgba(226,232,240,0.9)",
           }}
         >
           <h2
             style={{
-              fontSize: "16px",
-              marginBottom: "8px",
+              fontSize: "14px",
               fontWeight: 600,
+              marginBottom: "8px",
             }}
           >
             How to use DeepMirror
           </h2>
-          <ol
+          <ul
             style={{
-              fontSize: "13px",
-              lineHeight: 1.6,
               paddingLeft: "18px",
+              margin: 0,
+              display: "grid",
+              gap: "4px",
             }}
           >
-            <li>Type your age and what you&apos;re going through right now.</li>
+            <li>Type your age and what you’re going through right now.</li>
             <li>
-              Start with one situation (for example: sleep, relationships, confidence,
-              overthinking).
+              Start with one situation (for example: sleep, relationships,
+              confidence, overthinking).
             </li>
             <li>
-              Answer the follow-up questions honestly — this helps DeepMirror see the full
-              picture.
+              Answer the follow-up questions honestly — this helps DeepMirror
+              see the full picture.
             </li>
             <li>
-              Use any suggestions as ideas to test, not as strict rules or professional
-              treatment.
+              Use any suggestions as ideas to test, not as strict rules or
+              professional treatment.
             </li>
-          </ol>
+          </ul>
         </section>
       </div>
     </main>
