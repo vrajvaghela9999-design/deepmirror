@@ -1,61 +1,81 @@
 import { NextResponse } from "next/server";
+import OpenAI from "openai";
+
+const client = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+type HistoryMessage = {
+  from: "user" | "coach";
+  text: string;
+};
 
 export async function POST(req: Request) {
   try {
-    const { text } = await req.json();
-
-    const apiKey = process.env.OPENAI_API_KEY;
-    if (!apiKey) {
+    if (!process.env.OPENAI_API_KEY) {
       console.error("Missing OPENAI_API_KEY");
       return NextResponse.json(
-        { text: "Server configuration error (no API key)." },
+        {
+          reply:
+            "DeepMirror has a configuration problem (missing API key). Please tell the creator to check the server settings.",
+        },
         { status: 500 }
       );
     }
 
-    const payload = {
-      model: "gpt-4.1-mini",
-      temperature: 0.4,
-      messages: [
-        {
-          role: "system",
-          content:
-            "You are MindCoach, an advanced psychology-informed mental-health coach. You are NOT a doctor, NOT a licensed therapist, and NOT an emergency service. Focus on understanding the user, asking gentle clarifying questions, reflecting patterns you notice, and offering a few practical, realistic suggestions. Never diagnose, never name disorders, and never tell users to start, stop, or change medication. If the user mentions self-harm or harming others, encourage them to contact local emergency services, a crisis hotline, a doctor, or a trusted person immediately.",
-        },
-        {
-          role: "user",
-          content: String(text ?? ""),
-        },
-      ],
-    };
+    const body = await req.json();
+    const age = body.age as string | number | undefined;
+    const history = (body.messages ?? []) as HistoryMessage[];
 
-    const r = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
+    const messages = [
+      {
+        role: "system" as const,
+        content: [
+          `You are "DeepMirror", an advanced psychology-informed reflection coach.`,
+          `Your job is to help the user notice patterns in their thoughts, feelings, and behavior.`,
+          `You are NOT a doctor, NOT a licensed therapist, and NOT an emergency service.`,
+          ``,
+          `Goals:`,
+          `- Ask gentle, focused questions that help the user reflect.`,
+          `- Offer small, realistic next steps (never magic solutions).`,
+          `- Use simple, humane language, like a thoughtful psychologist friend.`,
+          ``,
+          `Boundaries (very important):`,
+          `- Never diagnose mental illnesses or say things like "you have depression" or "you are bipolar".`,
+          `- Never recommend, change, or stop any medication.`,
+          `- If the user mentions self-harm, suicidal thoughts, or harming others:`,
+          `  • Say clearly that you cannot keep them safe.`,
+          `  • Encourage them to contact emergency services, a crisis hotline, a doctor,`,
+          `    or a trusted person immediately.`,
+          ``,
+          age ? `The user says their age is ${age}.` : ``,
+        ]
+          .filter(Boolean)
+          .join("\n"),
       },
-      body: JSON.stringify(payload),
+      ...history.map((m) => ({
+        role: m.from === "user" ? ("user" as const) : ("assistant" as const),
+        content: m.text,
+      })),
+    ];
+
+    const completion = await client.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages,
+      temperature: 0.7,
+      max_tokens: 600,
     });
 
-    if (!r.ok) {
-      console.error("OpenAI API error:", await r.text());
-      return NextResponse.json(
-        { text: "There was an error talking to the coach. Please try again later." },
-        { status: 500 }
-      );
-    }
+    const reply = completion.choices[0]?.message?.content ?? "";
 
-    const data = await r.json();
-    const answer =
-      data.choices?.[0]?.message?.content ??
-      "I’m here to offer educational support, but I’m not a substitute for a licensed professional.";
-
-    return NextResponse.json({ text: answer });
-  } catch (err) {
-    console.error("Route error:", err);
+    return NextResponse.json({ reply });
+  } catch (error) {
+    console.error("Error in /api/chat route:", error);
     return NextResponse.json(
-      { text: "Server error while processing your message." },
+      {
+        reply:
+          "Something went wrong on my side. Save your message so you don't lose it, and try again in a minute.",
+      },
       { status: 500 }
     );
   }
