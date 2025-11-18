@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect, FormEvent } from "react";
+import { useEffect, useState, FormEvent } from "react";
 import Link from "next/link";
+import { useSearchParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
 type SessionUser = {
@@ -10,45 +11,50 @@ type SessionUser = {
 };
 
 type Message = {
-  id: string;
   role: "user" | "assistant";
   content: string;
-  createdAt: string;
 };
 
-function createGreetingMessage(): Message {
-  return {
-    id: "greeting-" + Date.now(),
+const INITIAL_MESSAGES: Message[] = [
+  {
     role: "assistant",
     content:
       "Hi, I’m DeepMirror. I’m an AI for reflection and self-understanding, not a doctor or therapist.\n\n" +
       "You can tell me what’s going on, and I’ll help you untangle it with questions and gentle structure.\n\n" +
       "To start: how old are you, and what’s the main thing on your mind today?",
-    createdAt: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-  };
-}
+  },
+];
 
 export default function ChatPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
   const [user, setUser] = useState<SessionUser | null>(null);
   const [loadingUser, setLoadingUser] = useState(true);
 
   const [age, setAge] = useState<string>("");
-  const [messages, setMessages] = useState<Message[]>([createGreetingMessage()]);
+  const [messages, setMessages] = useState<Message[]>(INITIAL_MESSAGES);
   const [input, setInput] = useState("");
   const [isSending, setIsSending] = useState(false);
+
+  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [loadingConversation, setLoadingConversation] = useState(false);
 
   // ---------- Supabase: load current user ----------
   useEffect(() => {
     const getUser = async () => {
+      setLoadingUser(true);
       const { data, error } = await supabase.auth.getUser();
-      if (!error && data?.user) {
+
+      if (error || !data?.user) {
+        setUser(null);
+      } else {
         setUser({
           id: data.user.id,
           email: data.user.email ?? null,
         });
-      } else {
-        setUser(null);
       }
+
       setLoadingUser(false);
     };
 
@@ -72,15 +78,56 @@ export default function ChatPage() {
     };
   }, []);
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-  };
+  // ---------- Load existing conversation messages from Supabase ----------
+  useEffect(() => {
+    const loadConversation = async () => {
+      const urlConversationId = searchParams.get("conversationId");
+
+      if (!urlConversationId || !user) return;
+
+      setLoadingConversation(true);
+
+      const { data, error } = await supabase
+        .from("messages")
+        .select("role, content, created_at")
+        .eq("conversation_id", urlConversationId)
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: true });
+
+      if (error) {
+        console.warn(
+          "Could not load messages (falling back to default):",
+          error
+        );
+        setMessages(INITIAL_MESSAGES);
+        setLoadingConversation(false);
+        return;
+      }
+
+      if (data && data.length > 0) {
+        const formatted: Message[] = data.map((m: any) => ({
+          role: m.role === "assistant" ? "assistant" : "user",
+          content: m.content,
+        }));
+
+        setMessages(formatted);
+        setConversationId(urlConversationId);
+      } else {
+        // No messages yet for this conversation – show greeting
+        setMessages(INITIAL_MESSAGES);
+      }
+
+      setLoadingConversation(false);
+    };
+
+    loadConversation();
+  }, [user, searchParams]);
 
   // ---------- Start a new session ----------
   const handleNewSession = () => {
-    setMessages([createGreetingMessage()]);
-    setInput("");
+    setConversationId(null);
+    setMessages(INITIAL_MESSAGES);
+    router.push("/chat");
   };
 
   // ---------- Handle sending a message ----------
@@ -88,66 +135,112 @@ export default function ChatPage() {
     e.preventDefault();
     if (!input.trim()) return;
 
-    const now = new Date().toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    const trimmedInput = input.trim();
 
     const userMessage: Message = {
-      id: "user-" + Date.now(),
       role: "user",
-      content: input.trim(),
-      createdAt: now,
+      content: trimmedInput,
     };
 
-    const updatedMessages = [...messages, userMessage];
-    setMessages(updatedMessages);
+    const optimisticMessages = [...messages, userMessage];
+
+    setMessages(optimisticMessages);
     setInput("");
     setIsSending(true);
 
     try {
-      const res = await fetch("/api/chat", {
+      // 1) Call our /api/chat route
+      const response = await fetch("/api/chat", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({
-          age: age || null,
-          messages: updatedMessages.map((m) => ({
-            role: m.role,
-            content: m.content,
-          })),
+          messages: optimisticMessages,
+          age,
           userEmail: user?.email ?? null,
         }),
       });
 
-      if (!res.ok) {
-        throw new Error("Request failed");
+      if (!response.ok) {
+        throw new Error(`Chat API returned ${response.status}`);
       }
 
-      const data = await res.json();
+      const data = await response.json();
+      const assistantText: string =
+        (data.reply as string | undefined)?.trim() ||
+        "Something went wrong while generating a reply. Please try again.";
 
       const assistantMessage: Message = {
-        id: "assistant-" + Date.now(),
         role: "assistant",
-        content: data.reply,
-        createdAt: new Date().toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
+        content: assistantText,
       };
 
-      setMessages((prev) => [...prev, assistantMessage]);
+      const newMessages = [...optimisticMessages, assistantMessage];
+      setMessages(newMessages);
+
+      // 2) Save conversation + messages in Supabase if the user is logged in
+      if (user) {
+        try {
+          let activeConversationId = conversationId;
+
+          // Create a conversation row if we don't have one yet
+          if (!activeConversationId) {
+            const { data: newConv, error: convError } = await supabase
+              .from("conversations")
+              .insert({
+                user_id: user.id,
+                title: trimmedInput.slice(0, 80) || "DeepMirror session",
+              })
+              .select("id")
+              .single();
+
+            if (convError || !newConv) {
+              console.warn("Error creating conversation:", convError);
+            } else {
+              activeConversationId = newConv.id;
+              setConversationId(activeConversationId);
+            }
+          }
+
+          // Insert user + assistant messages into the messages table
+          if (activeConversationId) {
+            const { error: insertError } = await supabase
+              .from("messages")
+              .insert([
+                {
+                  conversation_id: activeConversationId,
+                  user_id: user.id,
+                  role: "user",
+                  content: trimmedInput,
+                },
+                {
+                  conversation_id: activeConversationId,
+                  user_id: user.id,
+                  role: "assistant",
+                  content: assistantText,
+                },
+              ]);
+
+            if (insertError) {
+              // Use warn so Next.js dev overlay doesn’t scream at us
+              console.warn("Error saving messages:", insertError);
+            }
+          }
+        } catch (err) {
+          console.warn("Unexpected error while saving messages:", err);
+        }
+      }
     } catch (err) {
-      const errorMessage: Message = {
-        id: "error-" + Date.now(),
-        role: "assistant",
-        content:
-          "Something went wrong while generating a reply. You can try again in a moment.",
-        createdAt: new Date().toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-      };
-      setMessages((prev) => [...prev, errorMessage]);
+      console.error("Error talking to DeepMirror:", err);
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content:
+            "Something went wrong on my side while generating a reply. You can try again in a moment.",
+        },
+      ]);
     } finally {
       setIsSending(false);
     }
@@ -158,39 +251,31 @@ export default function ChatPage() {
     <main
       style={{
         minHeight: "100vh",
-        padding: "24px 16px",
+        padding: "32px 16px",
         background:
-          "radial-gradient(circle at top, #1e2b93 0, #020617 55%, #000 100%)",
+          "radial-gradient(circle at top, #1e293b 0, #020617 55%, #000 100%)",
         color: "white",
         fontFamily:
-          "-apple-system, system-ui, BlinkMacSystemFont, Segoe UI, sans-serif",
+          "-apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif",
         display: "flex",
         justifyContent: "center",
       }}
     >
-      <div
-        style={{
-          width: "100%",
-          maxWidth: "980px",
-          display: "flex",
-          flexDirection: "column",
-          gap: "16px",
-        }}
-      >
-        {/* Header */}
+      <div style={{ width: "100%", maxWidth: "860px" }}>
+        {/* Top bar */}
         <header
           style={{
             display: "flex",
             alignItems: "center",
+            marginBottom: "16px",
             justifyContent: "space-between",
-            gap: "12px",
           }}
         >
-          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          <div style={{ display: "flex", alignItems: "baseline", gap: "8px" }}>
             <Link
               href="/"
               style={{
-                fontSize: "14px",
+                fontSize: "13px",
                 opacity: 0.7,
                 textDecoration: "none",
                 color: "#e5e7eb",
@@ -198,262 +283,197 @@ export default function ChatPage() {
             >
               ← Back to home
             </Link>
-            <div style={{ fontSize: "18px", fontWeight: 600 }}>DEEPMIRROR</div>
-            <div
-              style={{
-                fontSize: "12px",
-                opacity: 0.7,
-              }}
-            >
-              Experimental reflection AI — educational use only
-            </div>
           </div>
 
-          <div
+          <button
+            onClick={handleNewSession}
             style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "flex-end",
-              gap: 6,
-              fontSize: "12px",
+              fontSize: "13px",
+              padding: "6px 12px",
+              borderRadius: "999px",
+              border: "1px solid rgba(148, 163, 184, 0.6)",
+              background: "transparent",
+              color: "white",
+              cursor: "pointer",
             }}
           >
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span style={{ opacity: 0.7 }}>Age:</span>
-              <input
-                type="number"
-                min={10}
-                max={99}
-                value={age}
-                onChange={(e) => setAge(e.target.value)}
-                placeholder="e.g. 18"
-                style={{
-                  width: "56px",
-                  padding: "4px 6px",
-                  borderRadius: "999px",
-                  border: "1px solid rgba(148,163,184,0.6)",
-                  backgroundColor: "rgba(15,23,42,0.9)",
-                  color: "white",
-                  fontSize: "12px",
-                  textAlign: "center",
-                }}
-              />
-            </div>
-
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              {loadingUser ? (
-                <span style={{ opacity: 0.7 }}>Checking session…</span>
-              ) : user ? (
-                <>
-                  <span style={{ opacity: 0.7 }}>
-                    Signed in as {user.email ?? "unknown"}
-                  </span>
-                  <button
-                    onClick={handleLogout}
-                    style={{
-                      borderRadius: "999px",
-                      border: "1px solid rgba(148,163,184,0.6)",
-                      background: "transparent",
-                      padding: "4px 10px",
-                      fontSize: "12px",
-                      color: "#e5e7eb",
-                      cursor: "pointer",
-                    }}
-                  >
-                    Log out
-                  </button>
-                </>
-              ) : (
-                <Link
-                  href="/login"
-                  style={{
-                    borderRadius: "999px",
-                    border: "1px solid rgba(148,163,184,0.6)",
-                    padding: "4px 10px",
-                    fontSize: "12px",
-                    color: "#e5e7eb",
-                    textDecoration: "none",
-                  }}
-                >
-                  Sign in
-                </Link>
-              )}
-
-              <button
-                onClick={handleNewSession}
-                style={{
-                  borderRadius: "999px",
-                  border: "none",
-                  background:
-                    "linear-gradient(135deg, #22c55e, #4ade80, #a3e635)",
-                  padding: "4px 12px",
-                  fontSize: "12px",
-                  fontWeight: 500,
-                  color: "#022c22",
-                  cursor: "pointer",
-                }}
-              >
-                New session
-              </button>
-            </div>
-          </div>
+            New session
+          </button>
         </header>
+
+        {/* Header + meta */}
+        <section
+          style={{
+            borderRadius: "18px",
+            padding: "24px 20px",
+            border: "1px solid rgba(148, 163, 184, 0.35)",
+            background:
+              "radial-gradient(circle at top left, rgba(56,189,248,0.14), transparent 55%)",
+            marginBottom: "16px",
+          }}
+        >
+          <div
+            style={{
+              fontSize: "12px",
+              textTransform: "uppercase",
+              letterSpacing: "0.08em",
+              opacity: 0.7,
+              marginBottom: "6px",
+            }}
+          >
+            DEEPMIRROR
+          </div>
+          <div
+            style={{
+              fontSize: "22px",
+              fontWeight: 600,
+              marginBottom: "6px",
+            }}
+          >
+            Experimental reflection AI — educational use only
+          </div>
+          <div
+            style={{
+              fontSize: "13px",
+              opacity: 0.75,
+            }}
+          >
+            Signed in as{" "}
+            <span style={{ fontWeight: 500 }}>
+              {loadingUser
+                ? "loading..."
+                : user?.email ?? "Guest (not signed in)"}
+            </span>
+          </div>
+
+          {/* Age field */}
+          <div
+            style={{
+              marginTop: "16px",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              fontSize: "13px",
+            }}
+          >
+            <span style={{ opacity: 0.8 }}>Age:</span>
+            <input
+              type="text"
+              placeholder="e.g. 18"
+              value={age}
+              onChange={(e) => setAge(e.target.value)}
+              style={{
+                width: "80px",
+                borderRadius: "999px",
+                border: "1px solid rgba(148,163,184,0.7)",
+                background: "rgba(15,23,42,0.8)",
+                color: "white",
+                fontSize: "13px",
+                padding: "4px 10px",
+                outline: "none",
+              }}
+            />
+            <span style={{ opacity: 0.6, fontSize: "12px" }}>
+              DeepMirror only uses this to adjust tone.
+            </span>
+          </div>
+        </section>
 
         {/* Chat card */}
         <section
           style={{
-            flex: 1,
             borderRadius: "18px",
-            padding: "16px 14px 12px 14px",
+            padding: "18px 20px 16px",
+            border: "1px solid rgba(148, 163, 184, 0.4)",
             background:
-              "radial-gradient(circle at top left, rgba(15,23,42,0.95), rgba(15,23,42,0.98))",
-            boxShadow: "0 24px 60px rgba(15,23,42,0.75)",
+              "radial-gradient(circle at top left, rgba(96,165,250,0.18), transparent 60%)",
             display: "flex",
             flexDirection: "column",
-            gap: "10px",
-            maxHeight: "72vh",
+            height: "60vh",
+            maxHeight: "560px",
           }}
         >
-          {/* Messages */}
+          {/* Messages area */}
           <div
             style={{
               flex: 1,
               overflowY: "auto",
               paddingRight: "4px",
-              display: "flex",
-              flexDirection: "column",
-              gap: "8px",
+              marginBottom: "12px",
             }}
           >
-            {messages.map((m) => {
-              const isUser = m.role === "user";
-              return (
-                <div
-                  key={m.id}
-                  style={{
-                    display: "flex",
-                    justifyContent: isUser ? "flex-end" : "flex-start",
-                  }}
-                >
+            {loadingConversation ? (
+              <div
+                style={{
+                  fontSize: "13px",
+                  opacity: 0.7,
+                  textAlign: "center",
+                  marginTop: "16px",
+                }}
+              >
+                Loading your conversation…
+              </div>
+            ) : (
+              messages.map((m, idx) => {
+                const isUser = m.role === "user";
+                return (
                   <div
+                    key={idx}
                     style={{
-                      maxWidth: "78%",
-                      borderRadius: isUser ? "16px 16px 4px 16px" : "16px 16px 16px 4px",
-                      padding: "10px 12px",
-                      fontSize: "14px",
-                      lineHeight: 1.5,
-                      whiteSpace: "pre-wrap",
-                      backgroundColor: isUser
-                        ? "rgba(34,197,94,0.18)"
-                        : "rgba(15,23,42,0.95)",
-                      border: isUser
-                        ? "1px solid rgba(74,222,128,0.7)"
-                        : "1px solid rgba(51,65,85,0.9)",
-                      color: isUser ? "#e5ffe9" : "#e5e7eb",
-                      boxShadow: isUser
-                        ? "0 10px 30px rgba(22,163,74,0.35)"
-                        : "0 10px 30px rgba(15,23,42,0.85)",
+                      display: "flex",
+                      justifyContent: isUser ? "flex-end" : "flex-start",
+                      marginBottom: "8px",
                     }}
                   >
-                    <div style={{ marginBottom: "4px", opacity: 0.6, fontSize: "11px" }}>
-                      {isUser ? "You" : "DeepMirror"}
-                    </div>
-                    <div>{m.content}</div>
                     <div
                       style={{
-                        marginTop: "6px",
-                        fontSize: "10px",
-                        opacity: 0.55,
-                        textAlign: "right",
+                        maxWidth: "82%",
+                        padding: "10px 12px",
+                        borderRadius: "14px",
+                        fontSize: "14px",
+                        lineHeight: 1.5,
+                        whiteSpace: "pre-wrap",
+                        background: isUser
+                          ? "linear-gradient(135deg,#22c55e,#4ade80)"
+                          : "rgba(15,23,42,0.85)",
+                        color: isUser ? "#052e16" : "#e5e7eb",
+                        boxShadow: isUser
+                          ? "0 0 0 1px rgba(34,197,94,0.4)"
+                          : "0 0 0 1px rgba(148,163,184,0.35)",
                       }}
                     >
-                      {m.createdAt}
+                      {m.content}
                     </div>
                   </div>
-                </div>
-              );
-            })}
-
-            {/* Typing indicator */}
-            {isSending && (
-              <div style={{ display: "flex", justifyContent: "flex-start" }}>
-                <div
-                  style={{
-                    borderRadius: "16px 16px 16px 4px",
-                    padding: "8px 12px",
-                    fontSize: "12px",
-                    backgroundColor: "rgba(15,23,42,0.9)",
-                    border: "1px solid rgba(51,65,85,0.9)",
-                    color: "#e5e7eb",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: "6px",
-                  }}
-                >
-                  <span>DeepMirror is thinking</span>
-                  <span
-                    style={{
-                      display: "inline-flex",
-                      gap: "4px",
-                    }}
-                  >
-                    <span
-                      style={{
-                        width: "4px",
-                        height: "4px",
-                        borderRadius: "999px",
-                        backgroundColor: "#e5e7eb",
-                        opacity: 0.5,
-                      }}
-                    />
-                    <span
-                      style={{
-                        width: "4px",
-                        height: "4px",
-                        borderRadius: "999px",
-                        backgroundColor: "#e5e7eb",
-                        opacity: 0.75,
-                      }}
-                    />
-                    <span
-                      style={{
-                        width: "4px",
-                        height: "4px",
-                        borderRadius: "999px",
-                        backgroundColor: "#e5e7eb",
-                        opacity: 1,
-                      }}
-                    />
-                  </span>
-                </div>
-              </div>
+                );
+              })
             )}
           </div>
 
-          {/* Input bar */}
+          {/* Input form */}
           <form
             onSubmit={handleSubmit}
             style={{
               display: "flex",
+              gap: "8px",
               alignItems: "center",
-              gap: "10px",
-              marginTop: "6px",
-              paddingTop: "8px",
-              borderTop: "1px solid rgba(51,65,85,0.9)",
+              marginTop: "4px",
             }}
           >
             <input
+              type="text"
+              placeholder="Tell DeepMirror what’s on your mind…"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Tell DeepMirror what’s on your mind…"
+              disabled={isSending}
               style={{
                 flex: 1,
                 borderRadius: "999px",
-                border: "1px solid rgba(71,85,105,0.9)",
-                padding: "10px 14px",
-                backgroundColor: "rgba(15,23,42,0.95)",
+                border: "1px solid rgba(148,163,184,0.7)",
+                background: "rgba(15,23,42,0.9)",
                 color: "white",
                 fontSize: "14px",
+                padding: "10px 14px",
                 outline: "none",
               }}
             />
@@ -463,21 +483,33 @@ export default function ChatPage() {
               style={{
                 borderRadius: "999px",
                 border: "none",
-                padding: "10px 18px",
+                padding: "9px 18px",
                 fontSize: "14px",
                 fontWeight: 500,
-                cursor: isSending || !input.trim() ? "not-allowed" : "pointer",
-                opacity: isSending || !input.trim() ? 0.5 : 1,
-                background:
-                  "linear-gradient(135deg, #22c55e, #4ade80, #a3e635)",
-                color: "#052e16",
-                whiteSpace: "nowrap",
+                background: isSending
+                  ? "rgba(148,163,184,0.7)"
+                  : "linear-gradient(135deg,#22c55e,#4ade80)",
+                color: isSending ? "#111827" : "#052e16",
+                cursor: isSending ? "default" : "pointer",
               }}
             >
               {isSending ? "Thinking…" : "Send"}
             </button>
           </form>
         </section>
+
+        {/* Footer */}
+        <footer
+          style={{
+            marginTop: "10px",
+            fontSize: "11px",
+            opacity: 0.55,
+            textAlign: "center",
+          }}
+        >
+          Built by Vraj Vaghela · DeepMirror (experimental) · Educational
+          support only, not a substitute for a licensed professional.
+        </footer>
       </div>
     </main>
   );
