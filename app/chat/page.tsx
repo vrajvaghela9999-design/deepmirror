@@ -221,30 +221,44 @@ export default function ChatPage() {
   const signedInEmail = user?.email ?? "Guest";
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-950 to-slate-900 text-slate-50">
+    <main className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-slate-50">
+      {/* Glow background */}
+      <div className="pointer-events-none fixed inset-0 -z-10">
+        <div className="absolute left-1/2 top-[-10%] h-64 w-64 -translate-x-1/2 rounded-full bg-sky-500/20 blur-3xl" />
+        <div className="absolute left-[10%] top-1/2 h-48 w-48 -translate-y-1/2 rounded-full bg-violet-500/10 blur-3xl" />
+        <div className="absolute right-[5%] bottom-[10%] h-48 w-48 rounded-full bg-emerald-500/10 blur-3xl" />
+      </div>
+
       {/* Top bar */}
       <header className="border-b border-slate-800/70 bg-slate-950/80 backdrop-blur">
-        <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-3 text-sm text-slate-300">
-          <Link href="/" className="text-slate-400 hover:text-slate-200">
-            ← Back to home
+        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3 text-sm text-slate-300">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-1 text-slate-400 transition hover:text-slate-100"
+          >
+            <span className="text-lg leading-none">←</span>
+            <span>Back to home</span>
           </Link>
 
           <div className="flex items-center gap-3">
             <div className="hidden text-xs text-slate-400 sm:block">
-              Experimental reflection AI — educational use only
+              <span className="font-medium text-sky-300">
+                DeepMirror · Experimental reflection AI
+              </span>{" "}
+              — educational use only
             </div>
-            <div className="h-6 w-px bg-slate-700/80" />
-            <div className="flex flex-col items-end gap-1">
-              <span className="text-xs text-slate-400">
-                Signed in as{" "}
-                <span className="font-medium text-slate-100">
+            <div className="hidden h-6 w-px bg-slate-800 sm:block" />
+            <div className="flex items-center gap-3">
+              <div className="text-xs text-slate-400">
+                <span className="hidden sm:inline">Signed in as </span>
+                <span className="font-semibold text-slate-100">
                   {signedInEmail}
                 </span>
-              </span>
+              </div>
               <button
                 type="button"
                 onClick={handleNewSession}
-                className="rounded-full bg-slate-800 px-3 py-1 text-xs font-medium text-slate-100 hover:bg-slate-700"
+                className="rounded-full border border-slate-700 bg-slate-900 px-3 py-1 text-xs font-semibold text-slate-100 shadow-sm shadow-sky-500/20 transition hover:border-sky-500 hover:bg-slate-900/80"
               >
                 New session
               </button>
@@ -253,99 +267,170 @@ export default function ChatPage() {
         </div>
       </header>
 
-      {/* Chat area */}
-      <div className="mx-auto flex max-w-4xl flex-col px-4 pb-24 pt-6">
-        {/* Age input + note */}
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-400">
-          <div className="flex items-center gap-2">
-            <span>Age:</span>
-            <input
-              type="number"
-              min={10}
-              max={100}
-              placeholder="e.g. 18"
-              value={age}
-              onChange={(e) => setAge(e.target.value)}
-              className="w-20 rounded-md border border-slate-700 bg-slate-900 px-2 py-1 text-xs text-slate-100 outline-none focus:border-sky-500"
-            />
-            <span className="text-[11px] text-slate-500">
-              DeepMirror only uses this to adjust tone.
-            </span>
+      {/* Chat layout */}
+      <div className="mx-auto flex max-w-5xl flex-col gap-4 px-4 pb-24 pt-6 md:flex-row">
+        {/* Left: chat */}
+        <div className="flex-1">
+          {/* Age row */}
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-400">
+            <div className="flex items-center gap-2">
+              <span className="text-slate-300">Age</span>
+              <input
+                type="number"
+                min={10}
+                max={100}
+                placeholder="e.g. 18"
+                value={age}
+                onChange={(e) => setAge(e.target.value)}
+                className="w-20 rounded-lg border border-slate-700 bg-slate-950/70 px-2 py-1 text-xs text-slate-100 outline-none ring-0 transition focus:border-sky-500 focus:ring-1 focus:ring-sky-500/60"
+              />
+              <span className="text-[11px] text-slate-500">
+                Used only to adjust tone.
+              </span>
+            </div>
           </div>
+
+          {/* Chat card */}
+          <section className="relative overflow-hidden rounded-3xl border border-slate-800/80 bg-slate-950/80 p-4 shadow-[0_0_70px_rgba(15,23,42,0.9)]">
+            {/* subtle top gradient line */}
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-sky-500/60 to-transparent" />
+
+            {/* Messages */}
+            <div className="max-h-[60vh] space-y-3 overflow-y-auto pr-1 scrollbar-thin scrollbar-track-slate-950 scrollbar-thumb-slate-700/80">
+              {loadingUser || loadingConversation ? (
+                <div className="flex items-center justify-center py-12 text-sm text-slate-400">
+                  <div className="flex items-center gap-3">
+                    <span className="h-2 w-2 animate-ping rounded-full bg-sky-400" />
+                    Loading your session…
+                  </div>
+                </div>
+              ) : (
+                messages.map((m, idx) => {
+                  const isAssistant = m.role === "assistant";
+                  return (
+                    <div
+                      key={idx}
+                      className={`flex ${
+                        isAssistant ? "justify-start" : "justify-end"
+                      }`}
+                    >
+                      <div
+                        className={
+                          "group relative max-w-[90%] rounded-3xl px-4 py-3 text-sm leading-relaxed shadow-sm transition " +
+                          (isAssistant
+                            ? "bg-slate-900/90 text-slate-100 border border-slate-700/70"
+                            : "bg-gradient-to-br from-sky-500 to-cyan-400 text-slate-950 font-medium shadow-sky-500/40")
+                        }
+                      >
+                        {isAssistant && (
+                          <div className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-sky-400/80">
+                            DeepMirror
+                          </div>
+                        )}
+                        {m.content.split("\n").map((line, i) => (
+                          <p key={i} className="mb-1 last:mb-0">
+                            {line}
+                          </p>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Typing indicator */}
+            {isSending && !loadingConversation && (
+              <div className="mt-3 flex items-center gap-2 text-xs text-sky-300/80">
+                <span className="flex h-6 items-center gap-1 rounded-full bg-slate-900/80 px-3 py-1">
+                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-sky-400" />
+                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-sky-300 delay-150" />
+                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-sky-200 delay-300" />
+                </span>
+                DeepMirror is thinking…
+              </div>
+            )}
+
+            {/* Input form */}
+            <form
+              onSubmit={handleSubmit}
+              className="mt-4 space-y-3 rounded-2xl border border-slate-800/90 bg-slate-950/90 p-3"
+            >
+              <div className="relative">
+                <div className="pointer-events-none absolute inset-0 rounded-2xl border border-slate-700/70" />
+                <textarea
+                  rows={3}
+                  className="relative w-full resize-none rounded-2xl bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none placeholder:text-slate-500 focus:ring-2 focus:ring-sky-500/60"
+                  placeholder="Tell DeepMirror what’s on your mind…"
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  disabled={isSending || loadingUser || loadingConversation}
+                />
+              </div>
+
+              <div className="flex flex-col gap-2 text-[11px] text-slate-500 sm:flex-row sm:items-center sm:justify-between">
+                <span>
+                  DeepMirror is for reflection and learning — not emergency or
+                  medical help.
+                </span>
+
+                <div className="flex items-center justify-end gap-2">
+                  {conversationId && (
+                    <span className="rounded-full bg-slate-900 px-2 py-1 text-[10px] text-slate-400">
+                      Session saved
+                    </span>
+                  )}
+                  <button
+                    type="submit"
+                    disabled={
+                      isSending ||
+                      loadingUser ||
+                      loadingConversation ||
+                      !input.trim()
+                    }
+                    className="inline-flex items-center gap-1 rounded-full bg-sky-500 px-4 py-1.5 text-xs font-semibold text-slate-950 shadow-md shadow-sky-500/40 transition hover:bg-sky-400 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-300 disabled:shadow-none"
+                  >
+                    {isSending ? (
+                      <>
+                        <span className="h-2 w-2 animate-spin rounded-full border border-slate-900 border-t-transparent" />
+                        Sending
+                      </>
+                    ) : (
+                      <>
+                        <span>Send</span>
+                        <span className="text-base leading-none">↗</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </form>
+          </section>
         </div>
 
-        {/* Messages */}
-        <section className="flex-1 space-y-3 rounded-2xl bg-slate-900/70 p-4 shadow-xl shadow-black/40">
-          {loadingUser || loadingConversation ? (
-            <div className="flex items-center justify-center py-8 text-sm text-slate-400">
-              Loading your session…
+        {/* Right: tiny “how to use” card (desktop) */}
+        <aside className="hidden w-64 flex-shrink-0 md:block">
+          <div className="sticky top-20 space-y-3 text-xs text-slate-300">
+            <div className="rounded-2xl border border-slate-800/80 bg-slate-950/80 p-4 shadow-lg shadow-black/40">
+              <h2 className="mb-2 text-[13px] font-semibold text-slate-100">
+                How to use DeepMirror
+              </h2>
+              <ul className="space-y-1 text-[11px] text-slate-400">
+                <li>• Start with one specific situation or feeling.</li>
+                <li>• Answer follow-up questions honestly.</li>
+                <li>• Use suggestions as ideas to try, not strict rules.</li>
+                <li>• You can always review past sessions in History.</li>
+              </ul>
             </div>
-          ) : (
-            <div className="space-y-3">
-              {messages.map((m, idx) => {
-                const isAssistant = m.role === "assistant";
-                return (
-                  <div
-                    key={idx}
-                    className={`flex ${
-                      isAssistant ? "justify-start" : "justify-end"
-                    }`}
-                  >
-                    <div
-                      className={
-                        "max-w-[90%] rounded-2xl px-4 py-3 text-sm leading-relaxed " +
-                        (isAssistant
-                          ? "bg-slate-800 text-slate-100"
-                          : "bg-sky-500 text-sky-50")
-                      }
-                    >
-                      {m.content.split("\n").map((line, i) => (
-                        <p key={i} className="mb-1 last:mb-0">
-                          {line}
-                        </p>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </section>
 
-        {/* Input form */}
-        <form
-          onSubmit={handleSubmit}
-          className="mt-4 flex flex-col gap-3 rounded-2xl border border-slate-800 bg-slate-950/80 p-3 shadow-lg shadow-black/40"
-        >
-          <textarea
-            rows={3}
-            className="w-full resize-none rounded-xl border border-slate-800 bg-slate-900 px-3 py-2 text-sm text-slate-100 outline-none placeholder:text-slate-500 focus:border-sky-500"
-            placeholder="Tell DeepMirror what’s on your mind…"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            disabled={isSending || loadingUser || loadingConversation}
-          />
-
-          <div className="flex items-center justify-between text-xs text-slate-400">
-            <span>
-              DeepMirror is for reflection and learning, not emergency or
-              medical help.
-            </span>
-
-            <button
-              type="submit"
-              disabled={
-                isSending ||
-                loadingUser ||
-                loadingConversation ||
-                !input.trim()
-              }
-              className="rounded-full bg-sky-500 px-4 py-1.5 text-xs font-semibold text-slate-950 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400"
+            <Link
+              href="/history"
+              className="block rounded-2xl border border-slate-800/80 bg-gradient-to-br from-slate-900 to-slate-950 px-4 py-3 text-[11px] font-medium text-sky-300 shadow-lg shadow-black/30 transition hover:border-sky-500 hover:text-sky-200"
             >
-              {isSending ? "Thinking…" : "Send"}
-            </button>
+              View your saved sessions →
+            </Link>
           </div>
-        </form>
+        </aside>
       </div>
     </main>
   );
