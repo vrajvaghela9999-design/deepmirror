@@ -177,6 +177,7 @@ export default function ChatPage() {
           age: age || "",
           userEmail: user?.email ?? null,
           conversationId,
+          userId: user?.id ?? null,
         }),
       });
 
