@@ -15,6 +15,13 @@ type Message = {
   created_at?: string;
 };
 
+type Tag = {
+  id: string;
+  name: string;
+  color: string;
+  icon: string | null;
+};
+
 const INITIAL_MESSAGES: Message[] = [
   {
     role: "assistant",
@@ -25,6 +32,20 @@ const INITIAL_MESSAGES: Message[] = [
       "What's on your mind today?",
   },
 ];
+
+// Icon components for tags
+const TagIcons: { [key: string]: JSX.Element } = {
+  'alert-circle': <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
+  'briefcase': <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>,
+  'heart': <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>,
+  'users': <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>,
+  'activity': <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M22 12h-4l-3 9L9 3l-3 9H2" /></svg>,
+  'star': <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" /></svg>,
+  'zap': <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>,
+  'moon': <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>,
+  'target': <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" strokeWidth={2} /><circle cx="12" cy="12" r="6" strokeWidth={2} /><circle cx="12" cy="12" r="2" strokeWidth={2} /></svg>,
+  'sun': <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>,
+};
 
 export default function ChatPage() {
   // Auth + user
@@ -42,6 +63,11 @@ export default function ChatPage() {
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [urlConversationId, setUrlConversationId] = useState<string | null>(null);
 
+  // Tags state
+  const [allTags, setAllTags] = useState<Tag[]>([]);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [showTagSelector, setShowTagSelector] = useState(false);
+
   // Refs
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -54,6 +80,21 @@ export default function ChatPage() {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Load all tags
+  useEffect(() => {
+    const loadTags = async () => {
+      const { data, error } = await supabase
+        .from("tags")
+        .select("id, name, color, icon")
+        .order("name");
+
+      if (!error && data) {
+        setAllTags(data);
+      }
+    };
+    loadTags();
+  }, []);
 
   // Load current user
   useEffect(() => {
@@ -103,13 +144,14 @@ export default function ChatPage() {
     }
   }, []);
 
-  // Load existing conversation messages
+  // Load existing conversation messages and tags
   useEffect(() => {
     const loadConversation = async () => {
       if (!urlConversationId || !user) return;
 
       setLoadingConversation(true);
 
+      // Load messages
       const { data, error } = await supabase
         .from("messages")
         .select("role, content, created_at")
@@ -137,11 +179,60 @@ export default function ChatPage() {
         setMessages(INITIAL_MESSAGES);
       }
 
+      // Load tags for this conversation
+      const { data: tagData } = await supabase
+        .from("conversation_tags")
+        .select("tag_id")
+        .eq("conversation_id", urlConversationId);
+
+      if (tagData) {
+        setSelectedTags(tagData.map((t) => t.tag_id));
+      }
+
       setLoadingConversation(false);
     };
 
     loadConversation();
   }, [urlConversationId, user]);
+
+  // Toggle tag selection
+  const toggleTag = async (tagId: string) => {
+    const isSelected = selectedTags.includes(tagId);
+    
+    if (isSelected) {
+      // Remove tag
+      setSelectedTags(selectedTags.filter((id) => id !== tagId));
+      
+      if (conversationId) {
+        await supabase
+          .from("conversation_tags")
+          .delete()
+          .eq("conversation_id", conversationId)
+          .eq("tag_id", tagId);
+      }
+    } else {
+      // Add tag
+      setSelectedTags([...selectedTags, tagId]);
+      
+      if (conversationId) {
+        await supabase
+          .from("conversation_tags")
+          .insert({ conversation_id: conversationId, tag_id: tagId });
+      }
+    }
+  };
+
+  // Save tags when conversation is created
+  const saveTagsForConversation = async (convId: string) => {
+    if (selectedTags.length === 0) return;
+
+    const tagRows = selectedTags.map((tagId) => ({
+      conversation_id: convId,
+      tag_id: tagId,
+    }));
+
+    await supabase.from("conversation_tags").insert(tagRows);
+  };
 
   // Start new session
   const handleNewSession = () => {
@@ -149,6 +240,7 @@ export default function ChatPage() {
     setUrlConversationId(null);
     setMessages(INITIAL_MESSAGES);
     setInput("");
+    setSelectedTags([]);
 
     if (typeof window !== "undefined") {
       const url = new URL(window.location.href);
@@ -203,6 +295,11 @@ export default function ChatPage() {
       setMessages((prev) => [...prev, assistantMessage]);
 
       if (data.conversationId) {
+        // If this is a new conversation, save the selected tags
+        if (!conversationId && selectedTags.length > 0) {
+          await saveTagsForConversation(data.conversationId);
+        }
+        
         setConversationId(data.conversationId);
 
         if (typeof window !== "undefined") {
@@ -231,6 +328,9 @@ export default function ChatPage() {
   };
 
   const signedInEmail = user?.email ? user.email.split("@")[0] : "Guest";
+
+  // Get selected tag objects
+  const selectedTagObjects = allTags.filter((t) => selectedTags.includes(t.id));
 
   return (
     <main className="min-h-screen flex flex-col relative overflow-hidden">
@@ -278,19 +378,96 @@ export default function ChatPage() {
           <div className="flex gap-6 flex-1 overflow-hidden">
             {/* Messages Column */}
             <div className="flex-1 flex flex-col min-w-0">
-              {/* Age Input */}
-              <div className="flex items-center gap-3 mb-4 text-sm">
-                <label className="text-slate-400">Age</label>
-                <input
-                  type="number"
-                  min={10}
-                  max={100}
-                  placeholder="e.g. 25"
-                  value={age}
-                  onChange={(e) => setAge(e.target.value)}
-                  className="dm-input w-20 py-1.5 text-center text-sm"
-                />
-                <span className="text-xs text-slate-500">Used to adjust tone</span>
+              {/* Age + Tags Row */}
+              <div className="flex flex-wrap items-center gap-4 mb-4">
+                {/* Age Input */}
+                <div className="flex items-center gap-2 text-sm">
+                  <label className="text-slate-400">Age</label>
+                  <input
+                    type="number"
+                    min={10}
+                    max={100}
+                    placeholder="e.g. 25"
+                    value={age}
+                    onChange={(e) => setAge(e.target.value)}
+                    className="dm-input w-20 py-1.5 text-center text-sm"
+                  />
+                </div>
+
+                {/* Tags Button */}
+                <div className="relative">
+                  <button
+                    onClick={() => setShowTagSelector(!showTagSelector)}
+                    className="dm-btn dm-btn-secondary text-xs py-1.5 px-3"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                    </svg>
+                    <span>Tags</span>
+                    {selectedTags.length > 0 && (
+                      <span className="bg-sky-500 text-slate-900 text-xs px-1.5 py-0.5 rounded-full font-bold">
+                        {selectedTags.length}
+                      </span>
+                    )}
+                  </button>
+
+                  {/* Tag Selector Dropdown */}
+                  {showTagSelector && (
+                    <div className="absolute top-full left-0 mt-2 w-64 bg-slate-900 border border-slate-700 rounded-xl shadow-xl z-30 p-3">
+                      <div className="text-xs text-slate-400 mb-2">Select topics for this session:</div>
+                      <div className="flex flex-wrap gap-2">
+                        {allTags.map((tag) => {
+                          const isSelected = selectedTags.includes(tag.id);
+                          return (
+                            <button
+                              key={tag.id}
+                              onClick={() => toggleTag(tag.id)}
+                              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium transition-all ${
+                                isSelected
+                                  ? "ring-2 ring-offset-1 ring-offset-slate-900"
+                                  : "opacity-60 hover:opacity-100"
+                              }`}
+                              style={{
+                                backgroundColor: `${tag.color}20`,
+                                color: tag.color,
+                                borderColor: tag.color,
+                                ringColor: isSelected ? tag.color : "transparent",
+                              }}
+                            >
+                              {tag.icon && TagIcons[tag.icon]}
+                              {tag.name}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <button
+                        onClick={() => setShowTagSelector(false)}
+                        className="mt-3 w-full text-xs text-slate-400 hover:text-white transition-colors"
+                      >
+                        Done
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Selected Tags Display */}
+                {selectedTagObjects.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {selectedTagObjects.map((tag) => (
+                      <span
+                        key={tag.id}
+                        className="flex items-center gap-1 px-2 py-1 rounded-full text-xs"
+                        style={{
+                          backgroundColor: `${tag.color}20`,
+                          color: tag.color,
+                        }}
+                      >
+                        {tag.icon && TagIcons[tag.icon]}
+                        {tag.name}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Messages Container */}
@@ -420,15 +597,15 @@ export default function ChatPage() {
                     </li>
                     <li className="flex items-start gap-2">
                       <span className="text-sky-400 mt-0.5">•</span>
+                      Add tags to organize your sessions
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-sky-400 mt-0.5">•</span>
                       Answer follow-up questions honestly
                     </li>
                     <li className="flex items-start gap-2">
                       <span className="text-sky-400 mt-0.5">•</span>
-                      Use suggestions as ideas, not strict rules
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-sky-400 mt-0.5">•</span>
-                      Review past sessions in History
+                      Filter sessions by tag in History
                     </li>
                   </ul>
                 </div>
