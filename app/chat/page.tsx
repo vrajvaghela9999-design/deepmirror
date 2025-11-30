@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, FormEvent } from "react";
+import { useState, useEffect, FormEvent, useRef } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -19,31 +19,43 @@ const INITIAL_MESSAGES: Message[] = [
   {
     role: "assistant",
     content:
-      "Hi, I’m DeepMirror. I’m an AI for reflection and self-understanding, not a doctor or therapist.\n\n" +
-      "You can tell me what’s going on, and I’ll help you untangle it with questions and gentle structure.\n\n" +
-      "To start: how old are you, and what’s the main thing on your mind today?",
+      "Hi, I'm DeepMirror — your personal reflection companion.\n\n" +
+      "I'm here to help you explore your thoughts and feelings through gentle questions and structured reflection. " +
+      "I'm not a therapist or doctor, but I can help you gain clarity.\n\n" +
+      "What's on your mind today?",
   },
 ];
 
 export default function ChatPage() {
-  // ----- auth + user -----
+  // Auth + user
   const [user, setUser] = useState<SessionUser | null>(null);
   const [loadingUser, setLoadingUser] = useState(true);
 
-  // ----- chat state -----
+  // Chat state
   const [age, setAge] = useState<string>("");
   const [messages, setMessages] = useState<Message[]>(INITIAL_MESSAGES);
   const [input, setInput] = useState("");
   const [isSending, setIsSending] = useState(false);
 
-  // ----- conversation tracking -----
+  // Conversation tracking
   const [loadingConversation, setLoadingConversation] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
-  const [urlConversationId, setUrlConversationId] = useState<string | null>(
-    null
-  );
+  const [urlConversationId, setUrlConversationId] = useState<string | null>(null);
 
-  // -------- Supabase: load current user --------
+  // Refs
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Auto scroll to bottom
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  // Load current user
   useEffect(() => {
     const getUser = async () => {
       const { data, error } = await supabase.auth.getUser();
@@ -80,7 +92,7 @@ export default function ChatPage() {
     };
   }, []);
 
-  // -------- Read conversationId from URL (client-side only) --------
+  // Read conversationId from URL
   useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -91,7 +103,7 @@ export default function ChatPage() {
     }
   }, []);
 
-  // -------- Load existing conversation messages from Supabase --------
+  // Load existing conversation messages
   useEffect(() => {
     const loadConversation = async () => {
       if (!urlConversationId || !user) return;
@@ -106,10 +118,7 @@ export default function ChatPage() {
         .order("created_at", { ascending: true });
 
       if (error) {
-        console.warn(
-          "Could not load messages (falling back to default):",
-          error
-        );
+        console.warn("Could not load messages:", error);
         setMessages(INITIAL_MESSAGES);
         setLoadingConversation(false);
         return;
@@ -125,7 +134,6 @@ export default function ChatPage() {
         setMessages(formatted);
         setConversationId(urlConversationId);
       } else {
-        // No messages yet for this conversation → show initial greeting
         setMessages(INITIAL_MESSAGES);
       }
 
@@ -135,7 +143,7 @@ export default function ChatPage() {
     loadConversation();
   }, [urlConversationId, user]);
 
-  // -------- Start a brand new session --------
+  // Start new session
   const handleNewSession = () => {
     setConversationId(null);
     setUrlConversationId(null);
@@ -149,7 +157,7 @@ export default function ChatPage() {
     }
   };
 
-  // -------- Handle sending a message --------
+  // Handle sending message
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!input.trim()) return;
@@ -161,7 +169,6 @@ export default function ChatPage() {
 
     const updatedMessages = [...messages, userMessage];
 
-    // Optimistic update in UI
     setMessages(updatedMessages);
     setInput("");
     setIsSending(true);
@@ -188,7 +195,6 @@ export default function ChatPage() {
 
       const data = await response.json();
 
-      // Assistant reply
       const assistantMessage: Message = {
         role: "assistant",
         content: data.reply,
@@ -196,11 +202,9 @@ export default function ChatPage() {
 
       setMessages((prev) => [...prev, assistantMessage]);
 
-      // New or existing conversation id from API
       if (data.conversationId) {
         setConversationId(data.conversationId);
 
-        // If URL doesn't already have it, update URL
         if (typeof window !== "undefined") {
           const url = new URL(window.location.href);
           url.searchParams.set("conversationId", data.conversationId);
@@ -211,227 +215,234 @@ export default function ChatPage() {
           setUrlConversationId(data.conversationId);
         }
       }
-    } catch (err) {
-      console.error("Error sending message:", err);
+    } catch (error) {
+      console.error("Error sending message:", error);
     } finally {
       setIsSending(false);
     }
   };
 
-  // -------- Render --------
-  const signedInEmail = user?.email ?? "Guest";
+  // Handle Enter key
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmit(e as any);
+    }
+  };
+
+  const signedInEmail = user?.email ? user.email.split("@")[0] : "Guest";
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-slate-50">
-      {/* Glow background */}
-      <div className="pointer-events-none fixed inset-0 -z-10">
-        <div className="absolute left-1/2 top-[-10%] h-64 w-64 -translate-x-1/2 rounded-full bg-sky-500/20 blur-3xl" />
-        <div className="absolute left-[10%] top-1/2 h-48 w-48 -translate-y-1/2 rounded-full bg-violet-500/10 blur-3xl" />
-        <div className="absolute right-[5%] bottom-[10%] h-48 w-48 rounded-full bg-emerald-500/10 blur-3xl" />
+    <main className="min-h-screen flex flex-col relative overflow-hidden">
+      {/* Background Effects */}
+      <div className="fixed inset-0 pointer-events-none">
+        <div className="absolute top-0 right-1/4 w-80 h-80 bg-sky-500/10 rounded-full blur-3xl" />
+        <div className="absolute bottom-1/4 left-1/4 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl" />
       </div>
 
-      {/* Top bar */}
-      <header className="border-b border-slate-800/70 bg-slate-950/80 backdrop-blur">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3 text-sm text-slate-300">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-1 text-slate-400 transition hover:text-slate-100"
-          >
-            <span className="text-lg leading-none">←</span>
-            <span>Back to home</span>
+      {/* Header */}
+      <header className="border-b border-slate-800/50 bg-slate-950/80 backdrop-blur-sm sticky top-0 z-20">
+        <div className="dm-container flex items-center justify-between py-3">
+          <Link href="/" className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            <span className="text-sm hidden sm:inline">Back to home</span>
           </Link>
 
+          <div className="flex items-center gap-2 text-xs">
+            <span className="text-sky-400 font-medium">DeepMirror</span>
+            <span className="text-slate-500 hidden sm:inline">· Educational use only</span>
+          </div>
+
           <div className="flex items-center gap-3">
-            <div className="hidden text-xs text-slate-400 sm:block">
-              <span className="font-medium text-sky-300">
-                DeepMirror · Experimental reflection AI
-              </span>{" "}
-              — educational use only
+            <div className="text-xs text-slate-400 hidden sm:block">
+              <span className="text-slate-300">{signedInEmail}</span>
             </div>
-            <div className="hidden h-6 w-px bg-slate-800 sm:block" />
-            <div className="flex items-center gap-3">
-              <div className="text-xs text-slate-400">
-                <span className="hidden sm:inline">Signed in as </span>
-                <span className="font-semibold text-slate-100">
-                  {signedInEmail}
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={handleNewSession}
-                className="rounded-full border border-slate-700 bg-slate-900 px-3 py-1 text-xs font-semibold text-slate-100 shadow-sm shadow-sky-500/20 transition hover:border-sky-500 hover:bg-slate-900/80"
-              >
-                New session
-              </button>
-            </div>
+            <button
+              onClick={handleNewSession}
+              className="dm-btn dm-btn-secondary text-xs py-1.5 px-3"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              <span className="hidden sm:inline">New</span>
+            </button>
           </div>
         </div>
       </header>
 
-      {/* Chat layout */}
-      <div className="mx-auto flex max-w-5xl flex-col gap-4 px-4 pb-24 pt-6 md:flex-row">
-        {/* Left: chat */}
-        <div className="flex-1">
-          {/* Age row */}
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-400">
-            <div className="flex items-center gap-2">
-              <span className="text-slate-300">Age</span>
-              <input
-                type="number"
-                min={10}
-                max={100}
-                placeholder="e.g. 18"
-                value={age}
-                onChange={(e) => setAge(e.target.value)}
-                className="w-20 rounded-lg border border-slate-700 bg-slate-950/70 px-2 py-1 text-xs text-slate-100 outline-none ring-0 transition focus:border-sky-500 focus:ring-1 focus:ring-sky-500/60"
-              />
-              <span className="text-[11px] text-slate-500">
-                Used only to adjust tone.
-              </span>
-            </div>
-          </div>
+      {/* Chat Area */}
+      <div className="flex-1 overflow-hidden flex flex-col">
+        <div className="dm-container flex-1 py-6 flex flex-col">
+          <div className="flex gap-6 flex-1 overflow-hidden">
+            {/* Messages Column */}
+            <div className="flex-1 flex flex-col min-w-0">
+              {/* Age Input */}
+              <div className="flex items-center gap-3 mb-4 text-sm">
+                <label className="text-slate-400">Age</label>
+                <input
+                  type="number"
+                  min={10}
+                  max={100}
+                  placeholder="e.g. 25"
+                  value={age}
+                  onChange={(e) => setAge(e.target.value)}
+                  className="dm-input w-20 py-1.5 text-center text-sm"
+                />
+                <span className="text-xs text-slate-500">Used to adjust tone</span>
+              </div>
 
-          {/* Chat card */}
-          <section className="relative overflow-hidden rounded-3xl border border-slate-800/80 bg-slate-950/80 p-4 shadow-[0_0_70px_rgba(15,23,42,0.9)]">
-            {/* subtle top gradient line */}
-            <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-sky-500/60 to-transparent" />
-
-            {/* Messages */}
-            <div className="max-h-[60vh] space-y-3 overflow-y-auto pr-1 scrollbar-thin scrollbar-track-slate-950 scrollbar-thumb-slate-700/80">
-              {loadingUser || loadingConversation ? (
-                <div className="flex items-center justify-center py-12 text-sm text-slate-400">
-                  <div className="flex items-center gap-3">
-                    <span className="h-2 w-2 animate-ping rounded-full bg-sky-400" />
-                    Loading your session…
-                  </div>
-                </div>
-              ) : (
-                messages.map((m, idx) => {
-                  const isAssistant = m.role === "assistant";
-                  return (
-                    <div
-                      key={idx}
-                      className={`flex ${
-                        isAssistant ? "justify-start" : "justify-end"
-                      }`}
-                    >
+              {/* Messages Container */}
+              <div className="dm-card flex-1 overflow-hidden flex flex-col">
+                {/* Glow Line */}
+                <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-sky-400/30 to-transparent" />
+                
+                {/* Messages */}
+                <div className="flex-1 overflow-y-auto space-y-4 pr-2 py-2">
+                  {loadingUser || loadingConversation ? (
+                    <div className="flex items-center justify-center py-12">
+                      <div className="dm-loading">
+                        <div className="dm-loading-dot" />
+                        <div className="dm-loading-dot" />
+                        <div className="dm-loading-dot" />
+                      </div>
+                      <span className="ml-3 text-slate-400 text-sm">Loading session...</span>
+                    </div>
+                  ) : (
+                    messages.map((m, idx) => (
                       <div
-                        className={
-                          "group relative max-w-[90%] rounded-3xl px-4 py-3 text-sm leading-relaxed shadow-sm transition " +
-                          (isAssistant
-                            ? "bg-slate-900/90 text-slate-100 border border-slate-700/70"
-                            : "bg-gradient-to-br from-sky-500 to-cyan-400 text-slate-950 font-medium shadow-sky-500/40")
-                        }
+                        key={idx}
+                        className={`flex ${m.role === "assistant" ? "justify-start" : "justify-end"}`}
                       >
-                        {isAssistant && (
-                          <div className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-sky-400/80">
-                            DeepMirror
+                        <div className={m.role === "assistant" ? "dm-bubble dm-bubble-assistant" : "dm-bubble dm-bubble-user"}>
+                          {m.role === "assistant" && (
+                            <div className="flex items-center gap-2 mb-2 text-xs text-sky-400 font-medium">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                              </svg>
+                              DeepMirror
+                            </div>
+                          )}
+                          {m.content.split("\n").map((line, i) => (
+                            <p key={i} className={`${i > 0 ? "mt-2" : ""}`}>
+                              {line}
+                            </p>
+                          ))}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                  
+                  {/* Typing Indicator */}
+                  {isSending && (
+                    <div className="flex justify-start">
+                      <div className="dm-bubble dm-bubble-assistant">
+                        <div className="flex items-center gap-2">
+                          <div className="dm-loading">
+                            <div className="dm-loading-dot" />
+                            <div className="dm-loading-dot" />
+                            <div className="dm-loading-dot" />
                           </div>
-                        )}
-                        {m.content.split("\n").map((line, i) => (
-                          <p key={i} className="mb-1 last:mb-0">
-                            {line}
-                          </p>
-                        ))}
+                          <span className="text-sm text-slate-400">Thinking...</span>
+                        </div>
                       </div>
                     </div>
-                  );
-                })
-              )}
-            </div>
-
-            {/* Typing indicator */}
-            {isSending && !loadingConversation && (
-              <div className="mt-3 flex items-center gap-2 text-xs text-sky-300/80">
-                <span className="flex h-6 items-center gap-1 rounded-full bg-slate-900/80 px-3 py-1">
-                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-sky-400" />
-                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-sky-300 delay-150" />
-                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-sky-200 delay-300" />
-                </span>
-                DeepMirror is thinking…
-              </div>
-            )}
-
-            {/* Input form */}
-            <form
-              onSubmit={handleSubmit}
-              className="mt-4 space-y-3 rounded-2xl border border-slate-800/90 bg-slate-950/90 p-3"
-            >
-              <div className="relative">
-                <div className="pointer-events-none absolute inset-0 rounded-2xl border border-slate-700/70" />
-                <textarea
-                  rows={3}
-                  className="relative w-full resize-none rounded-2xl bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none placeholder:text-slate-500 focus:ring-2 focus:ring-sky-500/60"
-                  placeholder="Tell DeepMirror what’s on your mind…"
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  disabled={isSending || loadingUser || loadingConversation}
-                />
-              </div>
-
-              <div className="flex flex-col gap-2 text-[11px] text-slate-500 sm:flex-row sm:items-center sm:justify-between">
-                <span>
-                  DeepMirror is for reflection and learning — not emergency or
-                  medical help.
-                </span>
-
-                <div className="flex items-center justify-end gap-2">
-                  {conversationId && (
-                    <span className="rounded-full bg-slate-900 px-2 py-1 text-[10px] text-slate-400">
-                      Session saved
-                    </span>
                   )}
-                  <button
-                    type="submit"
-                    disabled={
-                      isSending ||
-                      loadingUser ||
-                      loadingConversation ||
-                      !input.trim()
-                    }
-                    className="inline-flex items-center gap-1 rounded-full bg-sky-500 px-4 py-1.5 text-xs font-semibold text-slate-950 shadow-md shadow-sky-500/40 transition hover:bg-sky-400 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-300 disabled:shadow-none"
-                  >
-                    {isSending ? (
-                      <>
-                        <span className="h-2 w-2 animate-spin rounded-full border border-slate-900 border-t-transparent" />
-                        Sending
-                      </>
-                    ) : (
-                      <>
-                        <span>Send</span>
-                        <span className="text-base leading-none">↗</span>
-                      </>
-                    )}
-                  </button>
+                  
+                  <div ref={messagesEndRef} />
                 </div>
-              </div>
-            </form>
-          </section>
-        </div>
 
-        {/* Right: tiny “how to use” card (desktop) */}
-        <aside className="hidden w-64 flex-shrink-0 md:block">
-          <div className="sticky top-20 space-y-3 text-xs text-slate-300">
-            <div className="rounded-2xl border border-slate-800/80 bg-slate-950/80 p-4 shadow-lg shadow-black/40">
-              <h2 className="mb-2 text-[13px] font-semibold text-slate-100">
-                How to use DeepMirror
-              </h2>
-              <ul className="space-y-1 text-[11px] text-slate-400">
-                <li>• Start with one specific situation or feeling.</li>
-                <li>• Answer follow-up questions honestly.</li>
-                <li>• Use suggestions as ideas to try, not strict rules.</li>
-                <li>• You can always review past sessions in History.</li>
-              </ul>
+                {/* Input Form */}
+                <form onSubmit={handleSubmit} className="mt-4 pt-4 border-t border-slate-800/50">
+                  <div className="relative">
+                    <textarea
+                      ref={textareaRef}
+                      rows={3}
+                      className="dm-input pr-24 resize-none"
+                      placeholder="What's on your mind? Press Enter to send..."
+                      value={input}
+                      onChange={(e) => setInput(e.target.value)}
+                      onKeyDown={handleKeyDown}
+                      disabled={isSending || loadingUser || loadingConversation}
+                    />
+                    <button
+                      type="submit"
+                      disabled={isSending || loadingUser || loadingConversation || !input.trim()}
+                      className="absolute right-2 bottom-2 dm-btn dm-btn-accent py-2 px-4 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isSending ? (
+                        <div className="dm-loading">
+                          <div className="dm-loading-dot" style={{ width: 6, height: 6 }} />
+                          <div className="dm-loading-dot" style={{ width: 6, height: 6 }} />
+                          <div className="dm-loading-dot" style={{ width: 6, height: 6 }} />
+                        </div>
+                      ) : (
+                        <>
+                          <span>Send</span>
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                          </svg>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                  
+                  <div className="flex items-center justify-between mt-3 text-xs text-slate-500">
+                    <span>DeepMirror is for reflection — not medical or emergency help.</span>
+                    {conversationId && (
+                      <span className="flex items-center gap-1 text-emerald-500">
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                        Saved
+                      </span>
+                    )}
+                  </div>
+                </form>
+              </div>
             </div>
 
-            <Link
-              href="/history"
-              className="block rounded-2xl border border-slate-800/80 bg-gradient-to-br from-slate-900 to-slate-950 px-4 py-3 text-[11px] font-medium text-sky-300 shadow-lg shadow-black/30 transition hover:border-sky-500 hover:text-sky-200"
-            >
-              View your saved sessions →
-            </Link>
+            {/* Sidebar - Desktop Only */}
+            <aside className="hidden lg:block w-64 flex-shrink-0">
+              <div className="sticky top-24 space-y-4">
+                <div className="dm-card p-4">
+                  <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
+                    <svg className="w-4 h-4 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    How to use
+                  </h3>
+                  <ul className="space-y-2 text-xs text-slate-400">
+                    <li className="flex items-start gap-2">
+                      <span className="text-sky-400 mt-0.5">•</span>
+                      Start with one specific situation or feeling
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-sky-400 mt-0.5">•</span>
+                      Answer follow-up questions honestly
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-sky-400 mt-0.5">•</span>
+                      Use suggestions as ideas, not strict rules
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-sky-400 mt-0.5">•</span>
+                      Review past sessions in History
+                    </li>
+                  </ul>
+                </div>
+
+                <Link href="/history" className="dm-card p-4 flex items-center justify-between group hover:border-sky-500/50 transition-colors">
+                  <span className="text-sm text-slate-300 group-hover:text-white transition-colors">View History</span>
+                  <svg className="w-4 h-4 text-slate-500 group-hover:text-sky-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </Link>
+              </div>
+            </aside>
           </div>
-        </aside>
+        </div>
       </div>
     </main>
   );
