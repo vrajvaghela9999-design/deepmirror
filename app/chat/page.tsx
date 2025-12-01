@@ -33,46 +33,43 @@ const INITIAL_MESSAGES: Message[] = [
   },
 ];
 
-// Icon components for tags
-const TagIcons: { [key: string]: React.ReactNode } = {
-  'alert-circle': <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
-  'briefcase': <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>,
-  'heart': <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>,
-  'users': <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>,
-  'activity': <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M22 12h-4l-3 9L9 3l-3 9H2" /></svg>,
-  'star': <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" /></svg>,
-  'zap': <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>,
-  'moon': <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>,
-  'target': <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" strokeWidth={2} /><circle cx="12" cy="12" r="6" strokeWidth={2} /><circle cx="12" cy="12" r="2" strokeWidth={2} /></svg>,
-  'sun': <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>,
-};
+// Icon component helper
+function TagIcon({ icon }: { icon: string | null }) {
+  if (!icon) return null;
+  
+  const icons: { [key: string]: React.ReactNode } = {
+    'alert-circle': <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
+    'briefcase': <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>,
+    'heart': <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>,
+    'users': <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>,
+    'activity': <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M22 12h-4l-3 9L9 3l-3 9H2" /></svg>,
+    'star': <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" /></svg>,
+    'zap': <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>,
+    'moon': <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>,
+    'target': <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" strokeWidth={2} /><circle cx="12" cy="12" r="6" strokeWidth={2} /><circle cx="12" cy="12" r="2" strokeWidth={2} /></svg>,
+    'sun': <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>,
+  };
+  
+  return <>{icons[icon] || null}</>;
+}
 
 export default function ChatPage() {
-  // Auth + user
   const [user, setUser] = useState<SessionUser | null>(null);
   const [loadingUser, setLoadingUser] = useState(true);
-
-  // Chat state
   const [age, setAge] = useState<string>("");
   const [messages, setMessages] = useState<Message[]>(INITIAL_MESSAGES);
   const [input, setInput] = useState("");
   const [isSending, setIsSending] = useState(false);
-
-  // Conversation tracking
   const [loadingConversation, setLoadingConversation] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [urlConversationId, setUrlConversationId] = useState<string | null>(null);
-
-  // Tags state
   const [allTags, setAllTags] = useState<Tag[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [showTagSelector, setShowTagSelector] = useState(false);
 
-  // Refs
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Auto scroll to bottom
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -81,14 +78,12 @@ export default function ChatPage() {
     scrollToBottom();
   }, [messages]);
 
-  // Load all tags
   useEffect(() => {
     const loadTags = async () => {
       const { data, error } = await supabase
         .from("tags")
         .select("id, name, color, icon")
         .order("name");
-
       if (!error && data) {
         setAllTags(data);
       }
@@ -96,62 +91,40 @@ export default function ChatPage() {
     loadTags();
   }, []);
 
-  // Load current user
   useEffect(() => {
     const getUser = async () => {
       const { data, error } = await supabase.auth.getUser();
-
       if (!error && data?.user) {
-        setUser({
-          id: data.user.id,
-          email: data.user.email ?? null,
-        });
+        setUser({ id: data.user.id, email: data.user.email ?? null });
       } else {
         setUser(null);
       }
-
       setLoadingUser(false);
     };
-
     getUser();
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
-        setUser({
-          id: session.user.id,
-          email: session.user.email ?? null,
-        });
+        setUser({ id: session.user.id, email: session.user.email ?? null });
       } else {
         setUser(null);
       }
     });
-
-    return () => {
-      subscription.unsubscribe();
-    };
+    return () => { subscription.unsubscribe(); };
   }, []);
 
-  // Read conversationId from URL
   useEffect(() => {
     if (typeof window === "undefined") return;
-
     const params = new URLSearchParams(window.location.search);
     const convId = params.get("conversationId");
-    if (convId) {
-      setUrlConversationId(convId);
-    }
+    if (convId) setUrlConversationId(convId);
   }, []);
 
-  // Load existing conversation messages and tags
   useEffect(() => {
     const loadConversation = async () => {
       if (!urlConversationId || !user) return;
-
       setLoadingConversation(true);
 
-      // Load messages
       const { data, error } = await supabase
         .from("messages")
         .select("role, content, created_at")
@@ -160,88 +133,62 @@ export default function ChatPage() {
         .order("created_at", { ascending: true });
 
       if (error) {
-        console.warn("Could not load messages:", error);
         setMessages(INITIAL_MESSAGES);
         setLoadingConversation(false);
         return;
       }
 
       if (data && data.length > 0) {
-        const formatted: Message[] = data.map((m: any) => ({
+        const formatted: Message[] = data.map((m: { role: string; content: string; created_at: string }) => ({
           role: m.role === "assistant" ? "assistant" : "user",
           content: m.content,
           created_at: m.created_at,
         }));
-
         setMessages(formatted);
         setConversationId(urlConversationId);
       } else {
         setMessages(INITIAL_MESSAGES);
       }
 
-      // Load tags for this conversation
       const { data: tagData } = await supabase
         .from("conversation_tags")
         .select("tag_id")
         .eq("conversation_id", urlConversationId);
-
       if (tagData) {
         setSelectedTags(tagData.map((t) => t.tag_id));
       }
-
       setLoadingConversation(false);
     };
-
     loadConversation();
   }, [urlConversationId, user]);
 
-  // Toggle tag selection
   const toggleTag = async (tagId: string) => {
     const isSelected = selectedTags.includes(tagId);
-    
     if (isSelected) {
-      // Remove tag
       setSelectedTags(selectedTags.filter((id) => id !== tagId));
-      
       if (conversationId) {
-        await supabase
-          .from("conversation_tags")
-          .delete()
-          .eq("conversation_id", conversationId)
-          .eq("tag_id", tagId);
+        await supabase.from("conversation_tags").delete().eq("conversation_id", conversationId).eq("tag_id", tagId);
       }
     } else {
-      // Add tag
       setSelectedTags([...selectedTags, tagId]);
-      
       if (conversationId) {
-        await supabase
-          .from("conversation_tags")
-          .insert({ conversation_id: conversationId, tag_id: tagId });
+        await supabase.from("conversation_tags").insert({ conversation_id: conversationId, tag_id: tagId });
       }
     }
   };
 
-  // Save tags when conversation is created
   const saveTagsForConversation = async (convId: string) => {
     if (selectedTags.length === 0) return;
-
-    const tagRows = selectedTags.map((tagId) => ({
-      conversation_id: convId,
-      tag_id: tagId,
-    }));
-
+    const tagRows = selectedTags.map((tagId) => ({ conversation_id: convId, tag_id: tagId }));
     await supabase.from("conversation_tags").insert(tagRows);
   };
 
-  // Start new session
   const handleNewSession = () => {
     setConversationId(null);
     setUrlConversationId(null);
     setMessages(INITIAL_MESSAGES);
     setInput("");
     setSelectedTags([]);
-
     if (typeof window !== "undefined") {
       const url = new URL(window.location.href);
       url.searchParams.delete("conversationId");
@@ -249,18 +196,12 @@ export default function ChatPage() {
     }
   };
 
-  // Handle sending message
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!input.trim()) return;
 
-    const userMessage: Message = {
-      role: "user",
-      content: input.trim(),
-    };
-
+    const userMessage: Message = { role: "user", content: input.trim() };
     const updatedMessages = [...messages, userMessage];
-
     setMessages(updatedMessages);
     setInput("");
     setIsSending(true);
@@ -268,9 +209,7 @@ export default function ChatPage() {
     try {
       const response = await fetch("/api/chat", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           messages: updatedMessages,
           age: age || "",
@@ -286,31 +225,20 @@ export default function ChatPage() {
       }
 
       const data = await response.json();
-
-      const assistantMessage: Message = {
-        role: "assistant",
-        content: data.reply,
-      };
-
+      const assistantMessage: Message = { role: "assistant", content: data.reply };
       setMessages((prev) => [...prev, assistantMessage]);
 
       if (data.conversationId) {
-        // If this is a new conversation, save the selected tags
         if (!conversationId && selectedTags.length > 0) {
           await saveTagsForConversation(data.conversationId);
         }
-        
         setConversationId(data.conversationId);
-
         if (typeof window !== "undefined") {
           const url = new URL(window.location.href);
           url.searchParams.set("conversationId", data.conversationId);
           window.history.replaceState({}, "", url.toString());
         }
-
-        if (!urlConversationId) {
-          setUrlConversationId(data.conversationId);
-        }
+        if (!urlConversationId) setUrlConversationId(data.conversationId);
       }
     } catch (error) {
       console.error("Error sending message:", error);
@@ -319,7 +247,6 @@ export default function ChatPage() {
     }
   };
 
-  // Handle Enter key
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -328,19 +255,15 @@ export default function ChatPage() {
   };
 
   const signedInEmail = user?.email ? user.email.split("@")[0] : "Guest";
-
-  // Get selected tag objects
   const selectedTagObjects = allTags.filter((t) => selectedTags.includes(t.id));
 
   return (
     <main className="min-h-screen flex flex-col relative overflow-hidden">
-      {/* Background Effects */}
       <div className="fixed inset-0 pointer-events-none">
         <div className="absolute top-0 right-1/4 w-80 h-80 bg-sky-500/10 rounded-full blur-3xl" />
         <div className="absolute bottom-1/4 left-1/4 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl" />
       </div>
 
-      {/* Header */}
       <header className="border-b border-slate-800/50 bg-slate-950/80 backdrop-blur-sm sticky top-0 z-20">
         <div className="dm-container flex items-center justify-between py-3">
           <Link href="/" className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors">
@@ -349,20 +272,15 @@ export default function ChatPage() {
             </svg>
             <span className="text-sm hidden sm:inline">Back to home</span>
           </Link>
-
           <div className="flex items-center gap-2 text-xs">
             <span className="text-sky-400 font-medium">DeepMirror</span>
             <span className="text-slate-500 hidden sm:inline">· Educational use only</span>
           </div>
-
           <div className="flex items-center gap-3">
             <div className="text-xs text-slate-400 hidden sm:block">
               <span className="text-slate-300">{signedInEmail}</span>
             </div>
-            <button
-              onClick={handleNewSession}
-              className="dm-btn dm-btn-secondary text-xs py-1.5 px-3"
-            >
+            <button onClick={handleNewSession} className="dm-btn dm-btn-secondary text-xs py-1.5 px-3">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
@@ -372,15 +290,11 @@ export default function ChatPage() {
         </div>
       </header>
 
-      {/* Chat Area */}
       <div className="flex-1 overflow-hidden flex flex-col">
         <div className="dm-container flex-1 py-6 flex flex-col">
           <div className="flex gap-6 flex-1 overflow-hidden">
-            {/* Messages Column */}
             <div className="flex-1 flex flex-col min-w-0">
-              {/* Age + Tags Row */}
               <div className="flex flex-wrap items-center gap-4 mb-4">
-                {/* Age Input */}
                 <div className="flex items-center gap-2 text-sm">
                   <label className="text-slate-400">Age</label>
                   <input
@@ -394,7 +308,6 @@ export default function ChatPage() {
                   />
                 </div>
 
-                {/* Tags Button */}
                 <div className="relative">
                   <button
                     onClick={() => setShowTagSelector(!showTagSelector)}
@@ -411,7 +324,6 @@ export default function ChatPage() {
                     )}
                   </button>
 
-                  {/* Tag Selector Dropdown */}
                   {showTagSelector && (
                     <div className="absolute top-full left-0 mt-2 w-64 bg-slate-900 border border-slate-700 rounded-xl shadow-xl z-30 p-3">
                       <div className="text-xs text-slate-400 mb-2">Select topics for this session:</div>
@@ -422,19 +334,15 @@ export default function ChatPage() {
                             <button
                               key={tag.id}
                               onClick={() => toggleTag(tag.id)}
-                              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium transition-all ${
-                                isSelected
-                                  ? "ring-2 ring-offset-1 ring-offset-slate-900"
-                                  : "opacity-60 hover:opacity-100"
-                              }`}
+                              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium transition-all"
                               style={{
                                 backgroundColor: `${tag.color}20`,
                                 color: tag.color,
-                                borderColor: tag.color,
-                                ringColor: isSelected ? tag.color : "transparent",
+                                border: isSelected ? `2px solid ${tag.color}` : `1px solid transparent`,
+                                opacity: isSelected ? 1 : 0.7,
                               }}
                             >
-                              {tag.icon && TagIcons[tag.icon]}
+                              <TagIcon icon={tag.icon} />
                               {tag.name}
                             </button>
                           );
@@ -450,19 +358,15 @@ export default function ChatPage() {
                   )}
                 </div>
 
-                {/* Selected Tags Display */}
                 {selectedTagObjects.length > 0 && (
                   <div className="flex flex-wrap gap-1.5">
                     {selectedTagObjects.map((tag) => (
                       <span
                         key={tag.id}
                         className="flex items-center gap-1 px-2 py-1 rounded-full text-xs"
-                        style={{
-                          backgroundColor: `${tag.color}20`,
-                          color: tag.color,
-                        }}
+                        style={{ backgroundColor: `${tag.color}20`, color: tag.color }}
                       >
-                        {tag.icon && TagIcons[tag.icon]}
+                        <TagIcon icon={tag.icon} />
                         {tag.name}
                       </span>
                     ))}
@@ -470,12 +374,9 @@ export default function ChatPage() {
                 )}
               </div>
 
-              {/* Messages Container */}
               <div className="dm-card flex-1 overflow-hidden flex flex-col">
-                {/* Glow Line */}
                 <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-sky-400/30 to-transparent" />
                 
-                {/* Messages */}
                 <div className="flex-1 overflow-y-auto space-y-4 pr-2 py-2">
                   {loadingUser || loadingConversation ? (
                     <div className="flex items-center justify-center py-12">
@@ -488,10 +389,7 @@ export default function ChatPage() {
                     </div>
                   ) : (
                     messages.map((m, idx) => (
-                      <div
-                        key={idx}
-                        className={`flex ${m.role === "assistant" ? "justify-start" : "justify-end"}`}
-                      >
+                      <div key={idx} className={`flex ${m.role === "assistant" ? "justify-start" : "justify-end"}`}>
                         <div className={m.role === "assistant" ? "dm-bubble dm-bubble-assistant" : "dm-bubble dm-bubble-user"}>
                           {m.role === "assistant" && (
                             <div className="flex items-center gap-2 mb-2 text-xs text-sky-400 font-medium">
@@ -502,16 +400,13 @@ export default function ChatPage() {
                             </div>
                           )}
                           {m.content.split("\n").map((line, i) => (
-                            <p key={i} className={`${i > 0 ? "mt-2" : ""}`}>
-                              {line}
-                            </p>
+                            <p key={i} className={i > 0 ? "mt-2" : ""}>{line}</p>
                           ))}
                         </div>
                       </div>
                     ))
                   )}
                   
-                  {/* Typing Indicator */}
                   {isSending && (
                     <div className="flex justify-start">
                       <div className="dm-bubble dm-bubble-assistant">
@@ -526,11 +421,9 @@ export default function ChatPage() {
                       </div>
                     </div>
                   )}
-                  
                   <div ref={messagesEndRef} />
                 </div>
 
-                {/* Input Form */}
                 <form onSubmit={handleSubmit} className="mt-4 pt-4 border-t border-slate-800/50">
                   <div className="relative">
                     <textarea
@@ -564,7 +457,6 @@ export default function ChatPage() {
                       )}
                     </button>
                   </div>
-                  
                   <div className="flex items-center justify-between mt-3 text-xs text-slate-500">
                     <span>DeepMirror is for reflection — not medical or emergency help.</span>
                     {conversationId && (
@@ -580,7 +472,6 @@ export default function ChatPage() {
               </div>
             </div>
 
-            {/* Sidebar - Desktop Only */}
             <aside className="hidden lg:block w-64 flex-shrink-0">
               <div className="sticky top-24 space-y-4">
                 <div className="dm-card p-4">
@@ -609,7 +500,6 @@ export default function ChatPage() {
                     </li>
                   </ul>
                 </div>
-
                 <Link href="/history" className="dm-card p-4 flex items-center justify-between group hover:border-sky-500/50 transition-colors">
                   <span className="text-sm text-slate-300 group-hover:text-white transition-colors">View History</span>
                   <svg className="w-4 h-4 text-slate-500 group-hover:text-sky-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
