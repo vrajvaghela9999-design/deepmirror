@@ -88,23 +88,28 @@ export default function HistoryPage() {
         return;
       }
 
-      interface ConvTagData {
-        tags: Tag | null;
-      }
-      
-      interface ConvData {
-        id: string;
-        title: string | null;
-        created_at: string;
-        conversation_tags: ConvTagData[] | null;
-      }
-
-      const formattedConversations: Conversation[] = (convData || []).map((conv: ConvData) => ({
-        id: conv.id,
-        title: conv.title,
-        created_at: conv.created_at,
-        tags: conv.conversation_tags?.map((ct: ConvTagData) => ct.tags).filter((t): t is Tag => t !== null) || [],
-      }));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const formattedConversations: Conversation[] = (convData || []).map((conv: any) => {
+        const tags: Tag[] = [];
+        if (conv.conversation_tags && Array.isArray(conv.conversation_tags)) {
+          conv.conversation_tags.forEach((ct: any) => {
+            if (ct.tags && ct.tags.id) {
+              tags.push({
+                id: ct.tags.id,
+                name: ct.tags.name,
+                color: ct.tags.color,
+                icon: ct.tags.icon,
+              });
+            }
+          });
+        }
+        return {
+          id: conv.id,
+          title: conv.title,
+          created_at: conv.created_at,
+          tags,
+        };
+      });
 
       setConversations(formattedConversations);
       setLoading(false);
