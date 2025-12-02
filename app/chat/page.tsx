@@ -277,6 +277,14 @@ export default function ChatPage() {
             <span className="text-slate-500 hidden sm:inline">· Educational use only</span>
           </div>
           <div className="flex items-center gap-3">
+            {/* Added Upgrade Button Here */}
+            <Link 
+              href="/pricing"
+              className="hidden sm:inline-flex px-3 py-1.5 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-full text-xs font-medium hover:shadow-lg transition-all hover:scale-105"
+            >
+              Upgrade ✨
+            </Link>
+
             <div className="text-xs text-slate-400 hidden sm:block">
               <span className="text-slate-300">{signedInEmail}</span>
             </div>
@@ -504,6 +512,14 @@ export default function ChatPage() {
                   <span className="text-sm text-slate-300 group-hover:text-white transition-colors">View History</span>
                   <svg className="w-4 h-4 text-slate-500 group-hover:text-sky-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </Link>
+
+                {/* Added Analytics Link */}
+                <Link href="/analytics" className="dm-card p-4 flex items-center justify-between group hover:border-sky-500/50 transition-colors">
+                  <span className="text-sm text-slate-300 group-hover:text-white transition-colors">Analytics</span>
+                  <svg className="w-4 h-4 text-slate-500 group-hover:text-sky-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                   </svg>
                 </Link>
               </div>
