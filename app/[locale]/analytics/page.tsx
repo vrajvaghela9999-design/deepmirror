@@ -5,9 +5,6 @@ import { supabase } from '@/lib/supabaseClient';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import Link from 'next/link';
 
-// Initialize Supabase
-const supabase = createClient();
-
 // Colors for the Pie Chart
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
@@ -39,7 +36,7 @@ export default function AnalyticsPage() {
         });
         const chartData = Object.keys(sessionMap).map(date => ({ date, count: sessionMap[date] }));
 
-        // 2. Fetch Tags for Pie Chart (Using your Day 10 tables)
+        // 2. Fetch Tags for Pie Chart
         const { data: tagsData } = await supabase
           .from('conversation_tags')
           .select(`
