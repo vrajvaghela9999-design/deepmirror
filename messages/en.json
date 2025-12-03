@@ -1,0 +1,15 @@
+{
+  "HomePage": {
+    "title": "Reflect. Grow. Evolve.",
+    "subtitle": "Your personal AI mirror for deeper self-understanding.",
+    "getStarted": "Start Reflection",
+    "history": "View History"
+  },
+  "Navigation": {
+    "home": "Home",
+    "chat": "Chat",
+    "history": "History",
+    "analytics": "Analytics",
+    "pricing": "Pricing"
+  }
+}
